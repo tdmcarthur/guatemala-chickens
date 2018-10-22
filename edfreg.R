@@ -2,6 +2,7 @@
 
 
 # WARNING: Say dont allow any missing values, since have not check that yet
+# TODO: add the formula numbers from the Young paper
 
 edfreg <- function(model, linfct) {
   # So the function should take as arguments:
@@ -20,6 +21,8 @@ edfreg <- function(model, linfct) {
   
   x <- model$cX
   # take the cX matrix
+  N <- model$N
+  # Get number of observations
   
   # Check that ... well the glht() fujction itself will check the linfct input
   
@@ -28,9 +31,9 @@ edfreg <- function(model, linfct) {
   
   glht.setup <- glht(model, linfct = linfct)
   
-  w <- glht.setup$linfct # hypothesis matrix
-  w_0 <- glht.setup$rhs # RHS of hypothesis test vector
-  
+  w <- t(glht.setup$linfct) # hypothesis matrix
+  w_0 <- t(glht.setup$rhs) # RHS of hypothesis test vector
+  # WARNING: not sure if I should take the transpose of glht.setup$rhs or not
   # do the stuffs
   
   x <- model$cX
@@ -62,7 +65,7 @@ edfreg <- function(model, linfct) {
   c <- num.clusters / (num.clusters - 1) *
     (N - 1) / (N - K)
   
-  Bx <- c * M %*% block_z %*% M / crossprod(z)
+  Bx <- c * M %*% block_z %*% M / as.vector(crossprod(z))
   
   Mu <- sum(diag(Bx))
   
@@ -70,13 +73,13 @@ edfreg <- function(model, linfct) {
   
   edf <- 2 * Mu * Mu / v
   
-  numerator <- (w %*% beta - w_0) /
-    sqrt(e.var.est * w %*% x.cross.inv %*% w)
+  numerator <- as.vector((t(w) %*% beta - w_0)) /
+    as.vector(sqrt(e.var.est * t(w) %*% x.cross.inv %*% w))
   
   denominator <- sqrt((1 / (2 * Mu ^ 2 / v)) *
-                        (e / sqrt(e.var.est)) %*% (Bx * (2 * Mu / v))  %*% (e / sqrt(e.var.est)))
+                        (t(e) / sqrt(e.var.est)) %*% (Bx * (2 * Mu / v))  %*% (e / sqrt(e.var.est)))
   
-  test.statistic <- numerator / denominator
+  test.statistic <- numerator / as.vector(denominator)
   
   edf <- 2 * Mu ^ 2 / v
   

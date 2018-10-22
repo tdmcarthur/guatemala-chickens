@@ -12,12 +12,13 @@
 # 5) MSE: A latex table of mean squared errors from tuning
 rm(list=ls(all=TRUE))
 
-setwd("D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity")
-data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
+#setwd("D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity")
+#data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
+data.path <- "/Users/travismcarthur/Desktop/Collaborations/Mullally/guatemala-chickens/"
+code.path <- "/Users/travismcarthur/git/guatemala-chickens/"
 
-
-library.path <- .libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
-.libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
+#library.path <- .libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
+#.libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
 
 vec.pac= c("foreign", "quantreg", "gbm", "glmnet",
            "MASS", "rpart", "doParallel", "sandwich", "randomForest",
@@ -27,7 +28,9 @@ vec.pac= c("foreign", "quantreg", "gbm", "glmnet",
 
 lapply(vec.pac, require, character.only = TRUE)
 
-source("ML_Functions.R")
+#source("ML_Functions.R")
+source(paste0(code.path, "ML_Functions.R"))
+source(paste0(code.path, "edfreg.R"))
 ptm <- proc.time()
 
 set.seed(1211);
@@ -265,16 +268,19 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       reg   <- a
       
       coef <- (summary(reg)$coefficients['G3',1])
-      pval <- (summary(reg)$coefficients['G3',4])
+      # pval <- (summary(reg)$coefficients['G3',4])
+      pval <- edfreg(reg, "G3 = 0")
       results_test[(1+(i-1)*15):(5+((i-1)*15)),l]  <- c(coef, confint(reg, 'G3', level = 1-alpha)[1:2], (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
       
       coef <- (summary(reg)$coefficients['G1',1])
-      pval <- (summary(reg)$coefficients['G1',4])
+      # pval <- (summary(reg)$coefficients['G1',4])
+      pval <- edfreg(reg, "G1 = 0")
       results_test[(6+(i-1)*15):(10+((i-1)*15)),l]  <- c(coef, confint(reg, 'G1', level = 1-alpha)[1:2], (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)) )
       
-      test <- glht(reg, linfct = c("G3-G1==0"))
+      # test <- glht(reg, linfct = c("G3-G1==0"))
       coef <- (summary(reg)$coefficients['G3',1]) - (summary(reg)$coefficients['G1',1])
-      pval <- summary(test)$test$pvalues[1]
+      # pval <- summary(test)$test$pvalues[1]
+      pval <- edfreg(reg, "G3 - G1 = 0")
       results_test[(11+(i-1)*15):(15+((i-1)*15)),l] <- c((confint(test,level = 1-alpha))$confint[1:3],(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
       # results_test: rows 1 to 15 are first outcome, 16 to 30 second outcome. COlumn 1 glmnet, column 2 rf.
       # later when it is vectorized, first 15 will be glmnet first oucome, next 15 glmnet second outcome, next 15 rf first outcome, etc. 60 elements.
@@ -319,12 +325,14 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       reg <- a 
       
       coef <- (summary(reg)$coefficients['d_ort',1])
-      pval <- (summary(reg)$coefficients['d_ort',4])
+      # pval <- (summary(reg)$coefficients['d_ort',4])
+      pval <- edfreg(reg, "d_ort = 0")
       results[(1+(i-1)*5):(i*5),l]      <-c(coef, confint(reg, 'd_ort', level = 1-alpha)[1:2],  (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
       # results: first 5 rows are ATE of outcome 1: coef, 95% CI lb and ub, pval1, pval2. Next 5 are ATE of second outcome. Each ML method in its own column.
       # 20 x 2 matrix that has 40 elements when vectorized.
       coef <- (summary(reg)$coefficients['S_ort',1])
-      pval <- (summary(reg)$coefficients['S_ort',4])
+      # pval <- (summary(reg)$coefficients['S_ort',4])
+      pval <- edfreg(reg, "S_ort = 0")
       results_het[(1+(i-1)*5):(i*5),l] <- c(coef, confint(reg, 'S_ort', level = 1-alpha)[1:2],  (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
       # results_het: results for ATE heterogeneity coefficient. Same pattern as results.
       bestML[(2+(i-1)*2),l]      <- abs(summary(reg)$coefficients['S_ort',1])*sqrt(var(dataout$S))
