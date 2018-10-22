@@ -250,16 +250,16 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       form1 <- as.formula(paste(y, "~", "B+S+G1+G2+G3 | ", fixed_effect, "| 0 |", cluster, sep=""))
       
       a <- tryCatch({
-        a <- felm(form1, data=dataout, weights=dataout$weight)  
+        a <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
       },error=function(e){
         cat("ERROR :",methods[l], t, i, "\n")
         form1  <- as.formula(paste(y, "~", "G1+G2+G3 | ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg    <- felm(form1, data=dataout, weights=dataout$weight)  
+        reg    <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
         return(reg)
       }, warning = function(war) {
         cat("WARNING :",methods[l], t, i, "\n")
         form1  <- as.formula(paste(y, "~", "G1+G2+G3 | ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg    <- felm(form1, data=dataout, weights=dataout$weight)  
+        reg    <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
         return(reg)
       })
       reg   <- a
@@ -304,16 +304,16 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       form1 <- as.formula(paste(y, "~", "B+S+d_ort+S_ort| ", fixed_effect, "| 0 |", cluster, sep=""))
       
       a  <- tryCatch({
-        a  <- felm(form1, data=dataout, weights=dataout$weight)   
+        a  <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)   
       },error=function(e){
         cat("ERROR2 :",methods[l], t, i, "\n")
         form1 <- as.formula(paste(y, "~", "d_ort+S_ort| ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg   <- felm(form1, data=dataout, weights=dataout$weight)  
+        reg   <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
         return(reg)
       }, warning = function(war) {
         cat("WARNING2 :",methods[l], t, i, "\n")
         form1 <- as.formula(paste(y, "~", "d_ort+S_ort| ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg   <- felm(form1, data=dataout, weights=dataout$weight)  
+        reg   <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
         return(reg)
       })
       reg <- a 
