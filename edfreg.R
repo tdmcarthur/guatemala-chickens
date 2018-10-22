@@ -85,8 +85,18 @@ edfreg <- function(model, linfct) {
   
   p.value <- 2 * pt((-1) * abs(test.statistic), df = edf)
   
-  p.value
-  # return a p value
+  tested.beta <- as.vector(t(w) %*% beta)
+  
+  confidence.interval <- c(tested.beta  - (tested.beta / test.statistic) * qt(1 - alpha / 2, df = edf),
+                           tested.beta  + (tested.beta / test.statistic) * qt(1 - alpha / 2, df = edf) )
+  # See https://ocw.mit.edu/courses/economics/14-381-statistical-method-in-economics-fall-2013/lecture-notes/MIT14_381F13_lec12.pdf
+  # TODO: add a bit of algebraic manipulation here
+  
+  list(p.value = p.value, confidence.interval = confidence.interval)
+  # return a p value and the confidence interval
 }
+
+#alpha <- .05
+#qnorm(1 - alpha / 2)
 
 
