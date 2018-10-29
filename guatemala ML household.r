@@ -12,13 +12,12 @@
 # 5) MSE: A latex table of mean squared errors from tuning
 rm(list=ls(all=TRUE))
 
-#setwd("D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity")
-#data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
-data.path <- "/Users/travismcarthur/Desktop/Collaborations/Mullally/guatemala-chickens"
-code.path <- "/Users/travismcarthur/git/guatemala-chickens/"
+setwd("D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity")
+data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
 
-#library.path <- .libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
-#.libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
+
+library.path <- .libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
+.libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
 
 vec.pac= c("foreign", "quantreg", "gbm", "glmnet",
            "MASS", "rpart", "doParallel", "sandwich", "randomForest",
@@ -28,9 +27,8 @@ vec.pac= c("foreign", "quantreg", "gbm", "glmnet",
 
 lapply(vec.pac, require, character.only = TRUE)
 
-#source("ML_Functions.R")
-source(paste0(code.path, "ML_Functions.R"))
-source(paste0(code.path, "edfreg.R"))
+source("ML_Functions.R")
+source("edfreg.R")
 ptm <- proc.time()
 
 set.seed(1211);
@@ -269,14 +267,14 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       
       coef <- (summary(reg)$coefficients['G3',1])
       # pval <- (summary(reg)$coefficients['G3',4])
-      edfreg.ret <- edfreg(reg, "G3 = 0")
+      edfreg.ret <- edfreg(reg, "G3 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       results_test[(1+(i-1)*15):(5+((i-1)*15)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
       
       coef <- (summary(reg)$coefficients['G1',1])
       # pval <- (summary(reg)$coefficients['G1',4])
-      edfreg.ret <- edfreg(reg, "G1 = 0")
+      edfreg.ret <- edfreg(reg, "G1 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       results_test[(6+(i-1)*15):(10+((i-1)*15)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)) )
@@ -284,7 +282,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       # test <- glht(reg, linfct = c("G3-G1==0"))
       coef <- (summary(reg)$coefficients['G3',1]) - (summary(reg)$coefficients['G1',1])
       # pval <- summary(test)$test$pvalues[1]
-      edfreg.ret <- edfreg(reg, "G3 - G1 = 0")
+      edfreg.ret <- edfreg(reg, "G3 - G1 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       results_test[(11+(i-1)*15):(15+((i-1)*15)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
@@ -332,7 +330,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       
       coef <- (summary(reg)$coefficients['d_ort',1])
       # pval <- (summary(reg)$coefficients['d_ort',4])
-      edfreg.ret <- edfreg(reg, "d_ort = 0")
+      edfreg.ret <- edfreg(reg, "d_ort = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       results[(1+(i-1)*5):(i*5),l]      <-c(coef, confidence.interval,  (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
@@ -340,7 +338,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       # 20 x 2 matrix that has 40 elements when vectorized.
       coef <- (summary(reg)$coefficients['S_ort',1])
       # pval <- (summary(reg)$coefficients['S_ort',4])
-      edfreg.ret <- edfreg(reg, "S_ort = 0")
+      edfreg.ret <- edfreg(reg, "S_ort = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       results_het[(1+(i-1)*5):(i*5),l] <- c(coef, confidence.interval,  (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))

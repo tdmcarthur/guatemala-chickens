@@ -4,7 +4,7 @@
 # WARNING: Say dont allow any missing values, since have not check that yet
 # TODO: add the formula numbers from the Young paper
 
-edfreg <- function(model, linfct) {
+edfreg <- function(model, linfct, alpha) {
   # So the function should take as arguments:
   # felm model
   # glht()-compatible string or string vector for the hypothesis test that will form w and w_0
@@ -19,17 +19,19 @@ edfreg <- function(model, linfct) {
   stopifnot(length(model$clustervar) == 1)
   # Allow one and only one cluster variable for now
   
+  # The glht() function itself will check the linfct input is correct
+  
   x <- model$cX
   # take the cX matrix
   N <- model$N
   # Get number of observations
-  
-  # Check that ... well the glht() fujction itself will check the linfct input
+  K <- model$p
+  # Get number of columns of x, plus number of fixed effects if any
   
   
   # form w and w_0 form the string vector and glht()
   
-  glht.setup <- glht(model, linfct = linfct)
+  glht.setup <- glht(model, linfct = linfct) 
   
   w <- t(glht.setup$linfct) # hypothesis matrix
   w_0 <- t(glht.setup$rhs) # RHS of hypothesis test vector
