@@ -13,10 +13,9 @@
 rm(list=ls(all=TRUE))
 
 #setwd("D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity")
-#data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
-data.path <- "/Users/travismcarthur/Desktop/Collaborations/Mullally/guatemala-chickens"
-code.path <- "/Users/travismcarthur/git/guatemala-chickens/"
-
+data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
+code.path <- "D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity"
+# Put your code path here, i.e. your working directory
 
 #library.path <- .libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
 #.libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
@@ -30,8 +29,8 @@ vec.pac= c("foreign", "quantreg", "gbm", "glmnet",
 lapply(vec.pac, require, character.only = TRUE)
 
 #source("ML_Functions.R")
-source(paste0(code.path, "ML_Functions.R"))
-source(paste0(code.path, "edfreg.R"))
+source(paste0(code.path, "/ML_Functions.R"))
+source(paste0(code.path, "/edfreg.R"))
 ptm <- proc.time()
 
 set.seed(1211);
