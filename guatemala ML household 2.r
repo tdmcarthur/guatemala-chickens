@@ -34,7 +34,7 @@ cl   <- makeCluster(no_cores, outfile="")
 registerDoParallel(cl)
 
 ####################################### Load and Process Data  #######################################
-data        <- read.dta13(paste(data.path,"/childhet.dta",sep=""), convert.factors = "FALSE") # read in the data set
+data        <- read.dta13(paste(data.path,"/hhhet.dta",sep=""), convert.factors = "FALSE") # read in the data set
 
 data$stratum  <- factor(data$stratum) # Turns stratum into factor variable
 a           <- as.data.frame(model.matrix(~data$stratum-1)) 
@@ -44,15 +44,15 @@ colnames(data)[which(colnames(data)=="stratum")] <- "vil_pair" # So as to not ge
 
 ####################################### Inputs  #######################################
 
-sim     <- 1    # number of sample splits (repitions for loop below)
+sim     <- 100     # number of sample splits (repitions for loop below)
 K       <- 2       # number of folds (for each repition we split the data in K partsm K-1 of which are used to estimate scores)
 p       <- 3       # number of groups (for splitting up treatment effects)
 thres   <- 0.33    # quantile for most/least affected group
 alpha   <- 0.05    # significance level
 
 #  dimension of these three vectors should match. If dimension is greater than 1 the program runs heterogeneity estimation separately for each outcome variable
-names <- c("Weight-for-age (Z-score)", "Not underweight (0/1)", "Height-for-age (Z-score)", "Not stunted (0/1)", "Consumed animal-source foods in past day (0/1)", "One-day dietary diversity score")    # vector of labels for outcome variables
-Y     <- c("zwei", "notunderweight", "zlen", "notstunted", "asf", "dds")     # vector of outcome variables
+names <- c("Annual expenditure per adult male equivalent (log)", "Annual food expenditure per adult male equivalent (log)", "Daily calories per adult male equivalent (log)", "Daily grams of animal protein per adult male equivalent", "Daily servings of eggs", "Eggs consumed per day per adult male equivalent (log)", "Food consumption score", "Chickens owned", "Naked-neck chickens owned")    # vector of labels for outcome variables
+Y     <- c("gastos_perAME", "foodcons_perc", "calorias_percap", "ASFproteina_percap", "egg_freq", "eggs_consumed", "FCS", "chicken_num", "pelucas_num")     # vector of outcome variables
 D     <- rep("treat", length(Y))  # vector of treatment variables
 
 # specify cluster, fixed effect and partition
@@ -61,14 +61,14 @@ fixed_effect <- "vil_pair"      # if no fixed_effect  use    fixed_effect <- "0"
 partition    <- "cluster"       # if no partition     use    partition    <- "0". Each time we split data in K parts we sample from within variable specified here.
 
 # create a vector of control variables
-controls     <- c("mujer", "edad_en_meses", "nochild", "lag_zwei", "lag_zlen", "lagdds", "lagasf", "micronutr", "bono", "gpsaltitude", "min_dist", "rain_maydec2015", "max30_maydec2015", "AME", "dep_ratio", "edu", "hhwealth", "dirtfloor", "hhsoc_capital", "credit", "market_distance", "electric", "water", "Lfoodcons_perc", "Lcalorias_percap", "LASFproteina_percap", "Legg_freq", "LFCS", "Leggs_consumed", "Lmaize_production", "Lfrijol_production", "Legg_price", "Legg_production", "Lchicken_num", "womanwealth", "womansoc_capital")
+controls     <- c("gpsaltitude", "min_dist", "rain_maydec2015", "max30_maydec2015", "AME", "dep_ratio", "edu", "hhwealth", "dirtfloor", "hhsoc_capital", "credit", "market_distance", "electric", "water", "Lfoodcons_perc", "Lcalorias_percap", "LASFproteina_percap", "Legg_freq", "LFCS", "Leggs_consumed", "Lmaize_production", "Lfrijol_production", "Legg_price", "Legg_production", "Lchicken_num", "womanwealth", "womansoc_capital")
 controls     <- c(controls, names(data)[(substring( names(data), 1, 7)=="stratum")]) # adds stratum dummies to set of control variables
 # for linear models (elastic net)
 controls_linear <- c(controls, names(data)[(substring( names(data), 1, 4)=="int_")])
 controls_linear
 
-affected       <- c("mujer", "edad_en_meses", "lag_zwei", "lag_zlen", "gpsaltitude", "rain_maydec2015", "max30_maydec2015", "dep_ratio", "edu", "hhwealth", "womanwealth", "credit", "market_distance", "water", "hhsoc_capital", "womansoc_capital", "Lcalorias_percap", "LASFproteina_percap", "LFCS", "Legg_price", "Legg_production", "Lchicken_num")
-names_affected <- c("Woman (0/1)", "Age in months", "Household-level average of weight-for-age", "Household-level average of height-for-age", "Meters above sea level", "Rainfall at closest weather station below median for 2015 crop season (0/1)", "Days with maximum temperature $>$ \ang{30}C during 2015 crop season above median", "Dependency ratio", "Average years of education, 12 years of age and older", "Wealth (log)", "Women's share of wealth", "Had credit at baseline (0/1)", "Time in minutes to arrive at nearest market", "Connected to water network (0/1)", "Social capital index, household", "Social capital index, women's share", "Daily calories per adult male equivalent (log)", "Daily grams of animal protein per adult male equivalent (log)", "Food consumption score (log)", "egg_price (log)", "Eggs produced in last six months (log)", "Chickens owned (log)")
+affected       <- c("gpsaltitude", "rain_maydec2015", "max30_maydec2015", "dep_ratio", "edu", "hhwealth", "womanwealth", "credit", "market_distance", "water", "hhsoc_capital", "womansoc_capital", "Lcalorias_percap", "LASFproteina_percap", "LFCS", "Legg_price", "Legg_production", "Lchicken_num")
+names_affected <- c("Meters above sea level", "Rainfall at closest weather station below median for 2015 crop season (0/1)", "Days with maximum temperature $>$ \ang{30}C during 2015 crop season above median", "Dependency ratio", "Average years of education, 12 years of age and older", "Wealth (log)", "Women's share of wealth", "Had credit at baseline (0/1)", "Time in minutes to arrive at nearest market", "Connected to water network (0/1)", "Social capital index, household", "Social capital index, women's share", "Daily calories per adult male equivalent (log)", "Daily grams of animal protein per adult male equivalent (log)", "Food consumption score (log)", "egg_price (log)", "Eggs produced in last six months (log)", "Chickens owned (log)")
 
 # generate formula for x, xl is for linear models
 
@@ -161,7 +161,7 @@ name        <- "EL1"
 ####################################### Estimation  #######################################
 
 r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %dopar% { 
-  # t <- 1
+ # t <- 1
   set.seed(t);
   
   results       <- matrix(NA,6*length(Y), length(methods))
@@ -285,15 +285,15 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments.
       results_test[(13+(i-1)*18):(18+((i-1)*18)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
-      
-      # test <- glht(reg, linfct = c("G3-G1==0"))
+    
+        # test <- glht(reg, linfct = c("G3-G1==0"))
       coef <- (summary(reg)$coefficients['G3',1]) - (summary(reg)$coefficients['G1',1])
       edfreg.ret <- edfreg(reg, "G3 - G1 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments
       results_test[(19+(i-1)*18):(24+((i-1)*18)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
-      
+    
       mean <- summary(reg)$coef[c('G1','G2','G3'),1]
       # Goodness of fit: maximize variation in outcomes explained by terciles
       bestML[(1+(i-1)*2),l]  <- (sum(mean^2)/5)
@@ -339,7 +339,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       # results_het[(1+(i-1)*5):(i*5),l] <- c(coef, confidence.interval,  (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)))
       # results_het: results for ATE heterogeneity coefficient. Same pattern as results.
       bestML[(2+(i-1)*2),l]      <- abs(summary(reg)$coefficients['S_ort',1])*sqrt(var(dataout$S))
-      
+
       ################################################ Most/Least Affected  ################################################ 
       
       high.effect     <- quantile(dataout$S, 1-thres);
@@ -356,7 +356,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
           reg   <- lm(form, data=dataout[(dataout$h==1)| (dataout$l==1),])    
           coef  <- reg$coefficients['h'] - reg$coefficients['l']
           test  <- glht(reg, linfct = c("h-l==0"))
-          
+      
           form2  <- paste(affected[m],"~h", sep="")
           reg2   <- lm(form2, data=dataout[(dataout$h==1)| (dataout$l==1),])    
           test2 <- coeftest(reg2, vcov = vcovHC, type = 'HC1')
@@ -399,4 +399,4 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
 }
 ptm
 
-write.csv(r,(paste(data.path,"/child_ml_output.csv",sep=""))) # save it to a csv
+write.csv(r,(paste(data.path,"/hh_ml_output.csv",sep=""))) # save it to a csv

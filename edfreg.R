@@ -94,7 +94,7 @@ edfreg <- function(model, linfct, alpha) {
   # See https://ocw.mit.edu/courses/economics/14-381-statistical-method-in-economics-fall-2013/lecture-notes/MIT14_381F13_lec12.pdf
   # TODO: add a bit of algebraic manipulation here
   
-  list(p.value = p.value, confidence.interval = confidence.interval)
+  list(p.value = p.value, confidence.interval = confidence.interval, edf = edf) # xxx Conner added edf to output
   # return a p value and the confidence interval
 }
 
