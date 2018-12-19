@@ -4,6 +4,7 @@
 # by V. CHERNOZHUKOV, M. DEMIRER, E. DUFLO, I. FERNANDEZ-VAL
 #--------------------------------------------------------------------------------------------------------------------
 rm(list=ls(all=TRUE))
+options(scipen=999)
 
 data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
 code.path <- "D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity"
@@ -161,7 +162,7 @@ name        <- "EL1"
 ####################################### Estimation  #######################################
 
 r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %dopar% { 
- # t <- 1
+ #  t <- 1
   set.seed(t);
   
   results       <- matrix(NA,6*length(Y), length(methods))
@@ -186,7 +187,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
   }
   
   for(i in 1:length(Y)){
-    # i <- 1
+    # i <- 3
     y      <- Y[i]
     d      <- D[i]
     
@@ -196,7 +197,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
     ind_u <- which(datause[,d]==1)         # treatment indicator
     
     for(l in 1:length(methods)){
-      # l <- 1
+       # l <- 2
       if(methods[l]=="glmnet"){   x         <- XL     }
       if(methods[l]!="glmnet"){   x         <- X      }
       if(tune_param[[l]]==0){ f = NULL}
@@ -268,7 +269,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments
-      results_test[(1+(i-1)*18):(6+((i-1)*18)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)
+      results_test[(1+(i-1)*24):(6+((i-1)*24)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)
       
       coef <- (summary(reg)$coefficients['G2',1])
       # pval <- (summary(reg)$coefficients['G2',4])
@@ -276,7 +277,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments
-      results_test[(7+(i-1)*18):(12+((i-1)*18)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)      
+      results_test[(7+(i-1)*24):(12+((i-1)*24)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)      
       
       coef <- (summary(reg)$coefficients['G1',1])
       # pval <- (summary(reg)$coefficients['G1',4])
@@ -284,7 +285,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments.
-      results_test[(13+(i-1)*18):(18+((i-1)*18)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
+      results_test[(13+(i-1)*24):(18+((i-1)*24)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
     
         # test <- glht(reg, linfct = c("G3-G1==0"))
       coef <- (summary(reg)$coefficients['G3',1]) - (summary(reg)$coefficients['G1',1])
@@ -292,7 +293,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments
-      results_test[(19+(i-1)*18):(24+((i-1)*18)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
+      results_test[(19+(i-1)*24):(24+((i-1)*24)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
     
       mean <- summary(reg)$coef[c('G1','G2','G3'),1]
       # Goodness of fit: maximize variation in outcomes explained by terciles
@@ -373,7 +374,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
           
           coef  <- (summary(reg)$coefficients['h',1]) - (summary(reg)$coefficients['l',1])
           #pval  <- summary(test)$test$pvalues[1]
-          pval <- test2[2,4]
+          pval <- as.numeric(test2[2,4])
           df3 <- test$df
           res3  <- c((confint(test,level = 1-alpha))$confint[1:3], (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), df3)
           a     <- c(res1, res2, res3)
@@ -400,3 +401,4 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
 ptm
 
 write.csv(r,(paste(data.path,"/hh_ml_output.csv",sep=""))) # save it to a csv
+
