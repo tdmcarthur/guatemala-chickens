@@ -1,5 +1,5 @@
 #--------------------------------------------------------------------------------------------------------------------
-# This code was adapted from code written for the paper "Generic Machine Learning Discovery 
+# This code was adapted from code written for the paper "Generic Machine Learning Discovery
 # and Classification Analysis of Heterogenous Treatment Effects in Randomized Experiments"
 # by V. CHERNOZHUKOV, M. DEMIRER, E. DUFLO, I. FERNANDEZ-VAL
 #--------------------------------------------------------------------------------------------------------------------
@@ -26,7 +26,14 @@ source(paste0(code.path, "/ML_Functions.R"))
 source(paste0(code.path, "/edfreg.R"))
 ptm <- proc.time()
 
-set.seed(1211);
+# As hereby stated in a git commit to GitHub on December 19 2018 at
+# approximately 11:45pm EST, Conner Mullally and Travis McArthur commit to
+# setting the random seed below to the last four digits of the closing value of
+# the Dow Jones Industrial Average on December 20 2018, including decimals 
+# (i.e. if the Dow Jones is 25316.53, then the seed would be 1653.), plus 14.
+# This number is available at: https://quotes.wsj.com/index/DJIA/historical-prices
+DJIA <- 0
+set.seed(DJIA + 14);
 if(exists('cl')) {
   stopCluster(cl)
 }
@@ -38,7 +45,7 @@ registerDoParallel(cl)
 data        <- read.dta13(paste(data.path,"/hhhet.dta",sep=""), convert.factors = "FALSE") # read in the data set
 
 data$stratum  <- factor(data$stratum) # Turns stratum into factor variable
-a           <- as.data.frame(model.matrix(~data$stratum-1)) 
+a           <- as.data.frame(model.matrix(~data$stratum-1))
 colnames(a) <- (substring(names(a), 6, 14)) # replace column names with last 7 characters (i.e. drops data$ from name)
 data <- cbind(data, a)
 colnames(data)[which(colnames(data)=="stratum")] <- "vil_pair" # So as to not get confused between indicator containing which stratum community belongs to and the indicators for each separate strata
@@ -58,7 +65,7 @@ D     <- rep("treat", length(Y))  # vector of treatment variables
 
 # specify cluster, fixed effect and partition
 cluster      <- "cluster"       # if no cluster       use    cluster      <- "0"
-fixed_effect <- "vil_pair"      # if no fixed_effect  use    fixed_effect <- "0". These should be the strata. 
+fixed_effect <- "vil_pair"      # if no fixed_effect  use    fixed_effect <- "0". These should be the strata.
 partition    <- "cluster"       # if no partition     use    partition    <- "0". Each time we split data in K parts we sample from within variable specified here.
 
 # create a vector of control variables
@@ -129,20 +136,20 @@ method_names <- c("Elastic net", "Random Forest")
 args         <- list(svmLinear2=list(type='eps-regression'), svmLinear=list(type='nu-svr'), svmPoly=list(type='nu-svr'), gbm=list(verbose=FALSE), rf=list(ntree=1000), gamboost=list(baselearner='btree'), avNNet=list(verbose = 0, linout = TRUE, trace = FALSE), pcaNNet=list(linout = TRUE, trace = FALSE, MaxNWts=100000, maxit=10000), nnet=list(linout = TRUE, trace = FALSE, MaxNWts=100000, maxit=10000))
 
 # methodML   <- c("repeatedcv", "repeatedcv", "repeatedcv", "none")   # resampling method for chosing tuning parameters. available options: boot, boot632, cv, LOOCV, LGOCV, repeatedcv, oob, none
-# tune       <- c(100, 20, 20, NA)                                    # number of elements per parameter in the grid. the grid size is tune^{number of tuning parameters}. 
+# tune       <- c(100, 20, 20, NA)                                    # number of elements per parameter in the grid. the grid size is tune^{number of tuning parameters}.
 # proces     <- c("range", "range","range", "range")                  # pre-processing method
-# select     <- c("best", "best","best", NA)                          # optimality criteria for choosing tuning parameter in cross validation. available options: best, oneSE, tolerance 
-# cv         <- c(2, 2,2, 2)                                          # the number of folds in cross-validation 
-# rep        <- c(2, 2,2, NA)                                         # number of iteration in repeated cross-validations 
+# select     <- c("best", "best","best", NA)                          # optimality criteria for choosing tuning parameter in cross validation. available options: best, oneSE, tolerance
+# cv         <- c(2, 2,2, 2)                                          # the number of folds in cross-validation
+# rep        <- c(2, 2,2, NA)                                         # number of iteration in repeated cross-validations
 
 methodML   <- c("repeatedcv","repeatedcv")   # resampling method for chosing tuning parameters. available options: boot, boot632, cv, LOOCV, LGOCV, repeatedcv, oob, none
-tune       <- c(100,20)                                    # number of elements per parameter in the grid. the grid size is tune^{number of tuning parameters}. 
+tune       <- c(100,20)                                    # number of elements per parameter in the grid. the grid size is tune^{number of tuning parameters}.
 proces     <- c("range","range")                  # pre-processing method
-select     <- c("best","best")                          # optimality criteria for choosing tuning parameter in cross validation. available options: best, oneSE, tolerance 
-cv         <- c(2,2)                                          # the number of folds in cross-validation 
-rep        <- c(2,2)                                         # number of iteration in repeated cross-validations 
+select     <- c("best","best")                          # optimality criteria for choosing tuning parameter in cross validation. available options: best, oneSE, tolerance
+cv         <- c(2,2)                                          # the number of folds in cross-validation
+rep        <- c(2,2)                                         # number of iteration in repeated cross-validations
 
-# If there is a parameter of the model that user doesn't want to choose with cross validation, it should be set using tune_param variable. Below mtry of random forest is set to 5 
+# If there is a parameter of the model that user doesn't want to choose with cross validation, it should be set using tune_param variable. Below mtry of random forest is set to 5
 # for glmnet we want to choose both tuning parameters using cross validation so it is set to NULL
 
 # tune_param       <- list(0)
@@ -161,108 +168,108 @@ name        <- "EL1"
 
 ####################################### Estimation  #######################################
 
-r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %dopar% { 
+r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %dopar% {
  #  t <- 1
   set.seed(t);
-  
+
   results       <- matrix(NA,6*length(Y), length(methods))
   results_het   <- matrix(NA,6*length(Y), length(methods))
   results_test  <- matrix(NA,24*length(Y), length(methods))
   table.who     <- matrix(NA, (length(affected)*18)*length(Y), length(methods))
   bestML        <- matrix(NA, 2*length(Y), length(methods))
-  
+
   if(partition!="0"){
     ind <- createDataPartition(data[,partition], p = .5, list = FALSE)
-    
+
     datause_raw <- as.data.frame(data[ ind,])
     dataout_raw <- as.data.frame(data[-ind,])
   }
-  
+
   if(partition=="0"){
     split             <- runif(nrow(data))
-    cvgroup           <- as.numeric(cut(split,quantile(split,probs = seq(0, 1, 1/K)),include.lowest = TRUE))  
-    
+    cvgroup           <- as.numeric(cut(split,quantile(split,probs = seq(0, 1, 1/K)),include.lowest = TRUE))
+
     datause_raw       <- as.data.frame(data[cvgroup == 1,])
-    dataout_raw       <- as.data.frame(data[cvgroup != 1,])  
+    dataout_raw       <- as.data.frame(data[cvgroup != 1,])
   }
-  
+
   for(i in 1:length(Y)){
     # i <- 3
     y      <- Y[i]
     d      <- D[i]
-    
+
     datause   <- data.frame(datause_raw[complete.cases(datause_raw[, c(controls, y, d, affected)]),])
     dataout   <- data.frame(dataout_raw[complete.cases(dataout_raw[, c(controls, y, d, affected)]),])
-    
+
     ind_u <- which(datause[,d]==1)         # treatment indicator
-    
+
     for(l in 1:length(methods)){
        # l <- 2
       if(methods[l]=="glmnet"){   x         <- XL     }
       if(methods[l]!="glmnet"){   x         <- X      }
       if(tune_param[[l]]==0){ f = NULL}
       if(tune_param[[l]]!=0){ f = tune_param[[l]]}
-      
+
       form           <- as.formula(paste(y,"~",x,sep=""));
-      
+
       ############ Estimate Scores using ML ############
-      
-      md_x         <- rep((nrow(datause[datause[,d]==1,]) + nrow(dataout[dataout[,d]==1,]))/(nrow(datause) + nrow(dataout)), nrow(dataout))  
-      
-      
+
+      md_x         <- rep((nrow(datause[datause[,d]==1,]) + nrow(dataout[dataout[,d]==1,]))/(nrow(datause) + nrow(dataout)), nrow(dataout))
+
+
       fitControl   <- trainControl(method = methodML[l], number = cv[l], repeats = rep[l], allowParallel = FALSE, verboseIter=FALSE, search="random", selectionFunction=select[l])
       arg          <- c(list(form=form, data = datause[ind_u,],  method = methods[l],  tuneGrid = f, trControl = fitControl, preProcess=proces[l], tuneLength=tune[l]), args[[methods[l]]])
       fit.yz1      <- suppressWarnings(do.call(caret::train, arg))
       my_z1x       <- predict(fit.yz1, newdata=dataout, type="raw")
-      
+
       fitControl   <- trainControl(method = methodML[l], number = cv[l], repeats = rep[l], allowParallel = FALSE, verboseIter=FALSE, search="random", selectionFunction=select[l])
       arg          <- c(list(form=form, data = datause[-ind_u,],  method = methods[l], tuneGrid = f, trControl = fitControl, preProcess=proces[l], tuneLength=tune[l]), args[[methods[l]]])
       fit.yz0      <- suppressWarnings(do.call(caret::train, arg))
       my_z0x       <- predict(fit.yz0, newdata=dataout, type="raw")
-      
+
       ind           <- (md_x>0.01 & md_x<0.99)
       dataout       <- dataout[ind, ]
       my_z1x        <- my_z1x[ind]
       my_z0x        <- my_z0x[ind]
       md_x          <- md_x[ind]
-      
-      ############################################# ATE by groups ############################################# 
-      
+
+      ############################################# ATE by groups #############################################
+
       B   <- my_z0x
       S   <- (my_z1x - my_z0x)
-      
+
       S2        <- S+runif(length(S), 0, 0.00001)
       breaks    <- quantile(S2, seq(0,1, (1/3)),  include.lowest =T)
       breaks[1] <- breaks[1] - 0.001
       breaks[4] <- breaks[4] + 0.001
       SG        <- cut(S2, breaks = breaks)
-      
+
       SGX       <- model.matrix(~-1+SG)
       DSG       <- data.frame(as.numeric(I(as.numeric(dataout[,d])-md_x))*SGX)
-      
+
       colnames(DSG) <- c("G1", "G2", "G3")
       dataout[,c("B", "S", "G1", "G2", "G3", "weight")] <- cbind(B, S, DSG$G1, DSG$G2, DSG$G3, as.numeric((1/(md_x*(1-md_x)))))
-      
+
       if(var(dataout$B)==0) {dataout$B <- dataout$B + rnorm(length(dataout$B),  mean=0, sd=0.1) }
       if(var(dataout$S)==0) {dataout$S <- dataout$S + rnorm(length(dataout$S),  mean=0, sd=0.1) }
-      
+
       form1 <- as.formula(paste(y, "~", "B+S+G1+G2+G3 | ", fixed_effect, "| 0 |", cluster, sep=""))
-      
+
       a <- tryCatch({
-        a <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
+        a <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)
       },error=function(e){
         cat("ERROR :",methods[l], t, i, "\n")
         form1  <- as.formula(paste(y, "~", "G1+G2+G3 | ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg    <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
+        reg    <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)
         return(reg)
       }, warning = function(war) {
         cat("WARNING :",methods[l], t, i, "\n")
         form1  <- as.formula(paste(y, "~", "G1+G2+G3 | ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg    <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
+        reg    <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)
         return(reg)
       })
       reg   <- a
-      
+
       coef <- (summary(reg)$coefficients['G3',1])
       # pval <- (summary(reg)$coefficients['G3',4])
       edfreg.ret <- edfreg(reg, "G3 = 0", alpha)
@@ -270,58 +277,58 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments
       results_test[(1+(i-1)*24):(6+((i-1)*24)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)
-      
+
       coef <- (summary(reg)$coefficients['G2',1])
       # pval <- (summary(reg)$coefficients['G2',4])
       edfreg.ret <- edfreg(reg, "G2 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments
-      results_test[(7+(i-1)*24):(12+((i-1)*24)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)      
-      
+      results_test[(7+(i-1)*24):(12+((i-1)*24)),l]  <- c(coef, confidence.interval, (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)
+
       coef <- (summary(reg)$coefficients['G1',1])
       # pval <- (summary(reg)$coefficients['G1',4])
       edfreg.ret <- edfreg(reg, "G1 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments.
-      results_test[(13+(i-1)*24):(18+((i-1)*24)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
-    
+      results_test[(13+(i-1)*24):(18+((i-1)*24)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)
+
         # test <- glht(reg, linfct = c("G3-G1==0"))
       coef <- (summary(reg)$coefficients['G3',1]) - (summary(reg)$coefficients['G1',1])
       edfreg.ret <- edfreg(reg, "G3 - G1 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
       edf <- edfreg.ret$edf # xxx Conner added this code (and similar code) to get edf, which is used later for MHT adjustments
-      results_test[(19+(i-1)*24):(24+((i-1)*24)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)    
-    
+      results_test[(19+(i-1)*24):(24+((i-1)*24)),l] <- c(coef, confidence.interval,(as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), edf)
+
       mean <- summary(reg)$coef[c('G1','G2','G3'),1]
       # Goodness of fit: maximize variation in outcomes explained by terciles
       bestML[(1+(i-1)*2),l]  <- (sum(mean^2)/5)
-      
-      ################################### Best Linear Prediction Regression  ################################### 
-      
+
+      ################################### Best Linear Prediction Regression  ###################################
+
       Sd            <- dataout$S- mean(dataout$S)
       dataout$S_ort <- I((as.numeric(dataout[,d])-md_x)*Sd)
       dataout$d_ort <- I((as.numeric(dataout[,d])-md_x))
-      
+
       form1 <- as.formula(paste(y, "~", "B+S+d_ort+S_ort| ", fixed_effect, "| 0 |", cluster, sep=""))
-      
+
       a  <- tryCatch({
-        a  <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)   
+        a  <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)
       },error=function(e){
         cat("ERROR2 :",methods[l], t, i, "\n")
         form1 <- as.formula(paste(y, "~", "d_ort+S_ort| ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg   <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
+        reg   <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)
         return(reg)
       }, warning = function(war) {
         cat("WARNING2 :",methods[l], t, i, "\n")
         form1 <- as.formula(paste(y, "~", "d_ort+S_ort| ", fixed_effect, "| 0 |", cluster, sep=""))
-        reg   <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)  
+        reg   <- felm(form1, data=dataout, weights=dataout$weight, keepCX = TRUE)
         return(reg)
       })
-      reg <- a 
-      
+      reg <- a
+
       coef <- (summary(reg)$coefficients['d_ort',1])
       # pval <- (summary(reg)$coefficients['d_ort',4])
       edfreg.ret <- edfreg(reg, "d_ort = 0", alpha)
@@ -341,47 +348,47 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       # results_het: results for ATE heterogeneity coefficient. Same pattern as results.
       bestML[(2+(i-1)*2),l]      <- abs(summary(reg)$coefficients['S_ort',1])*sqrt(var(dataout$S))
 
-      ################################################ Most/Least Affected  ################################################ 
-      
+      ################################################ Most/Least Affected  ################################################
+
       high.effect     <- quantile(dataout$S, 1-thres);
       low.effect      <- quantile(dataout$S, thres);
       dataout$h       <- as.numeric(dataout$S>high.effect)
       dataout$l       <- as.numeric(dataout$S<low.effect)
-      
+
       if(var(dataout$h)==0){dataout$h <- as.numeric(runif(length(dataout$h))<0.1)}
       if(var(dataout$l)==0){dataout$l <- as.numeric(runif(length(dataout$l))<0.1)}
-      
+
       for(m in 1:length(affected)){
         a  <- tryCatch({
           form  <- paste(affected[m],"~h+l-1", sep="")
-          reg   <- lm(form, data=dataout[(dataout$h==1)| (dataout$l==1),])    
+          reg   <- lm(form, data=dataout[(dataout$h==1)| (dataout$l==1),])
           coef  <- reg$coefficients['h'] - reg$coefficients['l']
           test  <- glht(reg, linfct = c("h-l==0"))
-      
+
           form2  <- paste(affected[m],"~h", sep="")
-          reg2   <- lm(form2, data=dataout[(dataout$h==1)| (dataout$l==1),])    
+          reg2   <- lm(form2, data=dataout[(dataout$h==1)| (dataout$l==1),])
           test2 <- coeftest(reg2, vcov = vcovHC, type = 'HC1')
-          
+
           coef  <- (summary(reg)$coefficients['h',1])
           pval  <- (summary(reg)$coefficients['h',4])
           df1    <- reg$df.residual
           res1  <- c(coef, confint(reg, 'h', level = 1-alpha)[1:2], (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), df1)
-          
+
           coef  <- (summary(reg)$coefficients['l',1])
           pval  <- (summary(reg)$coefficients['l',4])
           df2    <- reg$df.residual
           res2  <- c(coef, confint(reg, 'l', level = 1-alpha)[1:2], (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), df2)
-          
+
           coef  <- (summary(reg)$coefficients['h',1]) - (summary(reg)$coefficients['l',1])
           #pval  <- summary(test)$test$pvalues[1]
           pval <- as.numeric(test2[2,4])
           df3 <- test$df
           res3  <- c((confint(test,level = 1-alpha))$confint[1:3], (as.numeric(coef<0)*(pval/2) + as.numeric(coef>0)*(1-pval/2)),(as.numeric(coef<0)*(1-pval/2) + as.numeric(coef>0)*(pval/2)), df3)
           a     <- c(res1, res2, res3)
-          
+
         },error=function(e){
           cat("ERROR3 :",methods[l], t, i, "\n")
-          
+
           res1  <- c(mean(dataout[(dataout$h==1),affected[m]]), mean(dataout[(dataout$h==1),affected[m]]), mean(dataout[(dataout$h==1),affected[m]]), 0.5, 0.5, df1)
           res2  <- c(mean(dataout[(dataout$l==1),affected[m]]), mean(dataout[(dataout$l==1),affected[m]]), mean(dataout[(dataout$l==1),affected[m]]), 0.5, 0.5, df2)
           res3  <- c((res1[1] - res2[1]), (res1[1] - res2[1]), (res1[1] - res2[1]), 0.5 , 0.5, df3)
@@ -401,4 +408,3 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
 ptm
 
 write.csv(r,(paste(data.path,"/hh_ml_output.csv",sep=""))) # save it to a csv
-

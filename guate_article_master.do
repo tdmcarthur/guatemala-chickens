@@ -5,11 +5,11 @@ set more off, perm
 
 /*******************************************************************************
 Running this .do file executes the code that de-identifies the raw follow-up
-data, drops pilot households not in the evaluation, merges baseline and 
+data, drops pilot households not in the evaluation, merges baseline and
 follow-up data, takes other steps to prepare the data for later analysis,
-estimates all average ITTs shown in the paper, creates all tables and 
+estimates all average ITTs shown in the paper, creates all tables and
 figures for average ITTs shown in the paper, and generates all results
-given in the appendix. 
+given in the appendix.
 *******************************************************************************/
 
 /*******************************************************************************
@@ -26,17 +26,17 @@ appedix)
 import_guatemala_fomin_ronda_2: converts raw data to .dta format
 
 guatemala_basic_data_prep_1: Converts baseline data from Windows-1252 encoding
-to UTF-8. 
+to UTF-8.
 
-guatemala_basic_data_prep_2: matches communities in follow-up data to their 
-original treatment assignments, clusters, and strata. 
+guatemala_basic_data_prep_2: matches communities in follow-up data to their
+original treatment assignments, clusters, and strata.
 
 guatemala_basic_data_prep_3: household roster, both rounds.
 
 guatemala_basic_data_prep_4: prepares anthro data
 
-guatemala_basic_data_prep_5: prepares food consumption data, but does not 
-add up expenditure, calories, etc. 
+guatemala_basic_data_prep_5: prepares food consumption data, but does not
+add up expenditure, calories, etc.
 
 guatemala_basic_data_prep_6a: round 2 household and individual dietary diversity,
 food expenditure
@@ -44,10 +44,10 @@ food expenditure
 guatemala_basic_data_prep_7: round 1 food consumption, dietary diversity
 and food expenditure, calories, protein
 
-guatemala_basic_data_prep_8a: HFIAS 
+guatemala_basic_data_prep_8a: HFIAS
 
 guatemala_basic_data_prep_9: round 2 non-food expenditure. Also, calculates per
-capita consumption. 
+capita consumption.
 
 guatemala_basic_data_prep_10: dwelling
 
@@ -57,7 +57,7 @@ guatemala_basic_data_prep_12: consumer durables. Poverty line indicators.
 
 guatemala_basic_data_prep_13: value of ag tools and installations. HH members
 who contributed to purchase of ag implements in round 2. Amount invested in
-ag tools in round 2. 
+ag tools in round 2.
 
 guatemala_basic_data_prep_14: hh savings
 
@@ -73,10 +73,10 @@ guatemala_basic_data_prep_18: brings in Mancomunidad admin data. Drops stratum
 
 guatemala_basic_data_prep_19: Matches each hh to nearest weather station.
 
-guatemala_basic_data_prep_20: Creates data set of daily temp, rain, and wind, 
-by station. Brings in data from baseline ch 14 on control over maize and bean 
+guatemala_basic_data_prep_20: Creates data set of daily temp, rain, and wind,
+by station. Brings in data from baseline ch 14 on control over maize and bean
 production/revenue, share of planted area receiving chemical and organic
-inputs, unit value and quantity of seed. Matches each household to climate 
+inputs, unit value and quantity of seed. Matches each household to climate
 variables for closest station. Finds nearest neighbors for each hh.
 
 guatemala_basic_data_prep_21: gathers baseline women's empowerment data
@@ -84,7 +84,7 @@ guatemala_basic_data_prep_21: gathers baseline women's empowerment data
 guatemala_basic_data_prep_22: creates additional covariates
 
 .DO FILE DIRECTORY FOR ANALYSIS FILES
-guatemala_analysis_1: create figures showing differences in indicators pre and 
+guatemala_analysis_1: create figures showing differences in indicators pre and
 post Marek vaccine
 
 guatemala_analysis_2: balance tests
@@ -110,10 +110,10 @@ guatemala_analysis_11: Lee bounds, hh-level outcomes
 guatemala_analysis_12: Checking attrition bias for children.
 
 guatemala_analysis_13: Tables with hh level ITTs, controlling for imbalanced
-baseline characteristics. 
+baseline characteristics.
 
 guatemala_analysis_14: Tables with child-level ITTs, controlling for imbalanced
-baseline characteristics. 
+baseline characteristics.
 
 guatemala_analysis_15: Differences in illness among children by gender. Impacts
 on transfers and gift giving.
@@ -153,9 +153,9 @@ cap ssc install moremata
 * must download edfreg from Alwyn Young's web page and place in ado folder.
 
 * Global macro ensuring the contained strata are dropped
-global strata "drop if stratum == 21 | stratum == 32" 
+global strata "drop if stratum == 21 | stratum == 32"
 
-/* Set this global macro to 1 to run the analysis on the balanced panel. Set it 
+/* Set this global macro to 1 to run the analysis on the balanced panel. Set it
 to zero to run on the full sample (including replacements). */
 gl panel 1
 
@@ -166,6 +166,12 @@ gl ri_reps 999
 gl mde_reps 1000
 
 * Random number seed
+* As hereby stated in a git commit to GitHub on December 19 2018 at
+* approximately 11:45pm EST, Conner Mullally and Travis McArthur commit to
+* setting the random seed below to the last four digits of the closing value of
+* the Dow Jones Industrial Average on December 20 2018, including decimals
+* (i.e. if the Dow Jones is 25316.53, then the seed would be 1653.)
+* This number is available at: https://quotes.wsj.com/index/DJIA/historical-prices
 gl rngseed 38
 
 * Converts SurveyCTO .csv files from follow-up data to .dta files.
