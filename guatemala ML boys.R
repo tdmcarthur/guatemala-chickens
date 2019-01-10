@@ -7,8 +7,8 @@ rm(list=ls(all=TRUE))
 options(scipen=999)
 data.path <- 'D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
 code.path <- "D:/Mullally,Conner/Documents/google drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity"
-#data.path <- 'C:/Users/Conner/Google Drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
-#code.path <- "C:/Users/Conner/Google Drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity"
+# data.path <- 'C:/Users/Conner/Google Drive/Guatemala ronda 2 2017/stata files/article stata work/stata data files'
+# code.path <- "C:/Users/Conner/Google Drive/Guatemala ronda 2 2017/stata files/article R scripts/MLInference-master/Heterogeneity"
 
 library.path <- .libPaths(c("D:/Mullally,Conner/Documents/R/win-library/3.5"))
 #library.path<-.libPaths(c("C:/Users/Conner/Documents/R/win-library/3.5"))
@@ -17,7 +17,7 @@ vec.pac= c("foreign", "quantreg", "gbm", "glmnet",
            "MASS", "rpart", "doParallel", "sandwich", "randomForest",
            "nnet", "matrixStats", "xtable", "readstata13", "car", "lfe", "doParallel",
            "caret", "foreach", "multcomp","cowplot", "iterators", "tcltk", "future", "dplyr", "lmtest")
-install.packages(pkgs = vec.pac, dependencies = TRUE)
+#install.packages(pkgs = vec.pac, dependencies = TRUE)
 lapply(vec.pac, require, character.only = TRUE)
 
 source(paste0(code.path, "/ML_Functions.R"))
@@ -243,6 +243,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       reg   <- a
       
       coef <- (summary(reg)$coefficients['G3',1])
+      if (any(is.na(coef(reg)))) {next}
       edfreg.ret <- edfreg(reg, "G3 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
@@ -298,6 +299,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       reg <- a 
       
       coef <- (summary(reg)$coefficients['d_ort',1])
+      if (any(is.na(coef(reg)))) {next}
       edfreg.ret <- edfreg(reg, "d_ort = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
@@ -371,4 +373,3 @@ ptm
 
 #write.csv(r,(paste(data.path,"/boys_ml_output.csv",sep=""))) # save it to a csv
 write.csv(r,"boys_ml_output.csv") # save it to a csv
-

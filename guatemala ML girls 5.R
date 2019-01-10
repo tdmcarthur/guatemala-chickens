@@ -243,6 +243,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       reg   <- a
       
       coef <- (summary(reg)$coefficients['G3',1])
+      if (any(is.na(coef(reg)))) {next}
       edfreg.ret <- edfreg(reg, "G3 = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
@@ -298,6 +299,7 @@ r <- foreach(t = 1:sim, .combine='cbind', .inorder=FALSE, .packages=vec.pac) %do
       reg <- a 
       
       coef <- (summary(reg)$coefficients['d_ort',1])
+      if (any(is.na(coef(reg)))) {next}
       edfreg.ret <- edfreg(reg, "d_ort = 0", alpha)
       pval <- edfreg.ret$p.value
       confidence.interval <- edfreg.ret$confidence.interval
