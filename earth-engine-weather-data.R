@@ -97,7 +97,7 @@ axis(2)
 CHIRPS.test.example.in.package <- ee_grab(data = ee_data_collection(
   datasetID = "UCSB-CHG/CHIRPS/DAILY",
   spatialReducer = "mean", temporalReducer = "mean",
-  timeStart = "2017-01-01", timeEnd = "2017-02-01",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
   resolution = NULL, bandSelection = NULL),
   targetArea = system.file("data/territories.shp", package = "earthEngineGrabR"))
 # NOTE: Maybe don't request a re-upload of territories.shp
@@ -105,14 +105,14 @@ CHIRPS.test.example.in.package <- ee_grab(data = ee_data_collection(
 str(CHIRPS.test.example.in.package)
 # ?plot.sf
 plot(CHIRPS.test.example.in.package, max.plot = 13)
-plot(CHIRPS.test.example.in.package[, "precipitation_s.mean_t.mean_2017.01.01_to_2017.02.01", drop = FALSE])
+plot(CHIRPS.test.example.in.package[, "precipitation_s.mean_t.mean_2017.06.01_to_2017.07.01", drop = FALSE])
 
 
 
 CHIRPS.test.example.in.package.EDITED <- ee_grab(data = ee_data_collection(
   datasetID = "UCSB-CHG/CHIRPS/DAILY",
   spatialReducer = "mean", # temporalReducer = "mean",
-  timeStart = "2017-01-01", timeEnd = "2017-02-01",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
   resolution = NULL, bandSelection = NULL),
   targetArea = system.file("data/territories.shp", package = "earthEngineGrabR"))
 # Ok so, no matter what, spatialReducer and temporalReducer are in effect (can be
@@ -124,7 +124,7 @@ CHIRPS.test.example.in.package.EDITED <- ee_grab(data = ee_data_collection(
 str(CHIRPS.test.example.in.package.EDITED)
 # ?plot.sf
 plot(CHIRPS.test.example.in.package.EDITED, max.plot = 13)
-plot(CHIRPS.test.example.in.package.EDITED[, "precipitation_s.mean_t.mean_2017.01.01_to_2017.02.01", drop = FALSE])
+plot(CHIRPS.test.example.in.package.EDITED[, "precipitation_s.mean_t.mean_2017.06.01_to_2017.07.01", drop = FALSE])
 
 
 guate.chickens.gps.df.CSV <- read.csv("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/stata files/edited data/guatemala fomin ronda 2.csv", stringsAsFactors = FALSE)
@@ -145,13 +145,14 @@ colnames(guate.chickens.gps.df.CSV[, 2:3]) <- c("Latitude", "Longitude")
 guate.chickens.gps.df.CSV <- guate.chickens.gps.df.CSV[complete.cases(guate.chickens.gps.df.CSV), ]
 
 coordinates(guate.chickens.gps.df.CSV) <- ~Longitude + Latitude
-proj4string(guate.chickens.gps.df.CSV) = CRS("+init=epsg:4326")
+# proj4string(guate.chickens.gps.df.CSV) = CRS("+init=epsg:4326")
 # I don't think that the projection matters for the purposes of pulling data
 # from Google Earth Engine
 # writeOGR(Mydata, ".","Mydata", "ESRI Shapefile")
 
 
 library(readstata13)
+library(data.table)
 
 guate.chickens.gps.df.DTA <- read.dta13("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/stata files/edited data/stata data files/hhroster.dta")
 
@@ -172,30 +173,55 @@ writeOGR(guate.chickens.gps.df.DTA, ".","Guate-HH-points", "ESRI Shapefile",  ov
 CHIRPS.guate.test <- ee_grab(data = ee_data_collection(
   datasetID = "UCSB-CHG/CHIRPS/DAILY",
   spatialReducer = "mean", # temporalReducer = "mean",
-  timeStart = "2017-01-01", timeEnd = "2017-02-01",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
   resolution = NULL, bandSelection = NULL),
   targetArea = "/Users/travismcarthur/Guate-HH-points.shp")
 # If you say "Y" to re-upload the shapefile then it has crashed every time.
 # But once you say "Y" and it crashes, you can re-run it unmodified and it works.
 
 colnames(CHIRPS.guate.test)[colnames(CHIRPS.guate.test) == 
-  "precipitation_s.mean_t.mean_2017.01.01_to_2017.02.01"] <- 
-  "precipitation_s.mean_t.mean_2017.01"
+  "precipitation_s.mean_t.mean_2017.06.01_to_2017.07.01"] <- 
+  "precipitation_s.mean_t.mean_2017.06"
 
 str(CHIRPS.guate.test)
+uniqueN(CHIRPS.guate.test$precipitation_s.mean_t.mean_2017.06)
+# [1] 15
+sd(CHIRPS.guate.test$precipitation_s.mean_t.mean_2017.06)
+# 0.5265971
+sd(CHIRPS.guate.test$precipitation_s.mean_t.mean_2017.06) / mean(CHIRPS.guate.test$precipitation_s.mean_t.mean_2017.06)
+# Coef of variation : [1] 0.04196773
 # ?plot.sf
 plot(CHIRPS.guate.test)
-plot(CHIRPS.guate.test[, "precipitation_s.mean_t.mean_2017.01", drop = FALSE], axes = TRUE,
-     main = "Jan 2017 mean daily precip in mm/day")
+plot(CHIRPS.guate.test[, "precipitation_s.mean_t.mean_2017.06", drop = FALSE], axes = TRUE,
+     main = "June 2017 mean daily precip in mm/day (CHIRPS)")
 
 
+guate.bbox <- guate.chickens.gps.df.DTA@bbox
+grid.resolution.test.df <- expand.grid(Longitude = seq(guate.bbox[1, 1], guate.bbox[1, 2], length.out = 20),
+                                       Latitude = seq(guate.bbox[2, 1], guate.bbox[2, 2], length.out = 20))
+plot(grid.resolution.test.df[, 1:2])
 
+grid.resolution.test.df$id <- 1:nrow(grid.resolution.test.df)
+
+coordinates(grid.resolution.test.df) <- ~Longitude + Latitude
+writeOGR(grid.resolution.test.df, ".","Guate-resolution-test-points", "ESRI Shapefile",  overwrite_layer = TRUE)
+
+
+CHIRPS.guate.resolution.test <- ee_grab(data = ee_data_collection(
+  datasetID = "UCSB-CHG/CHIRPS/DAILY",
+  spatialReducer = "mean", # temporalReducer = "mean",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
+  resolution = NULL, bandSelection = NULL),
+  targetArea = "/Users/travismcarthur/Guate-resolution-test-points.shp")
+
+plot(CHIRPS.guate.resolution.test[, 2], axes = TRUE, pch = 15, cex = 1.9)
+plot(CHIRPS.guate.test[, "precipitation_s.mean_t.mean_2017.06", drop = FALSE], axes = TRUE)
 
 
 TerraClimate.guate.test <- ee_grab(data = ee_data_collection(
   datasetID = "IDAHO_EPSCOR/TERRACLIMATE",
   spatialReducer = "mean", # temporalReducer = "mean",
-  timeStart = "2017-01-01", timeEnd = "2017-01-02",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
   resolution = NULL, bandSelection = NULL),
   targetArea = "/Users/travismcarthur/Guate-HH-points.shp")
 # If you say "Y" to re-upload the shapefile then it has crashed every time.
@@ -208,15 +234,108 @@ TerraClimate.guate.test <- ee_grab(data = ee_data_collection(
 #   Therefore, to select a single day use the date of the day as time start and the day after as timeEnd date.
 
 colnames(TerraClimate.guate.test)[colnames(TerraClimate.guate.test) == 
-                                    "tmmx_s.mean_t.mean_2017.01.01_to_2017.01.02"] <- "tmmx_s.mean_t.mean_2017.01"
+                                    "tmmx_s.mean_t.mean_2017.06.01_to_2017.07.01"] <- "tmmx_s.mean_t.mean_2017.06"
 
-TerraClimate.guate.test$tmmx_s.mean_t.mean_2017.01 <- TerraClimate.guate.test$tmmx_s.mean_t.mean_2017.01 * 0.1
+TerraClimate.guate.test$tmmx_s.mean_t.mean_2017.06 <- TerraClimate.guate.test$tmmx_s.mean_t.mean_2017.01 * 0.1
 
 str(TerraClimate.guate.test)
+uniqueN(TerraClimate.guate.test$tmmx_s.mean_t.mean_2017.06)# [1] 11
+sd(TerraClimate.guate.test$tmmx_s.mean_t.mean_2017.06)
+# [1] 0.1119042
 # ?plot.sf
 plot(TerraClimate.guate.test)
-plot(TerraClimate.guate.test[, "tmmx_s.mean_t.mean_2017.01", drop = FALSE], axes = TRUE,
-     main = "Jan 2017 mean daily max temp in Celsius")
+plot(TerraClimate.guate.test[, "tmmx_s.mean_t.mean_2017.06", drop = FALSE], axes = TRUE,
+     main = "June 2017 mean daily max temp in Celsius (TerraClimate)")
+
+
+TerraClimate.guate.resolution.test <- ee_grab(data = ee_data_collection(
+  datasetID = "IDAHO_EPSCOR/TERRACLIMATE",
+  spatialReducer = "mean", # temporalReducer = "mean",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
+  resolution = NULL, bandSelection = NULL),
+  targetArea = "/Users/travismcarthur/Guate-resolution-test-points.shp")
+
+TerraClimate.guate.resolution.test$tmmx_s.mean_t.mean_2017.06.01_to_2017.07.01 <-
+  TerraClimate.guate.resolution.test$tmmx_s.mean_t.mean_2017.06.01_to_2017.07.01 * 0.1
+
+plot(TerraClimate.guate.resolution.test[, "tmmx_s.mean_t.mean_2017.06.01_to_2017.07.01", drop = FALSE], 
+     axes = TRUE, pch = 15, cex = 1.9)
+plot(TerraClimate.guate.test[, "tmmx_s.mean_t.mean_2017.06", drop = FALSE], axes = TRUE)
+
+
+
+
+
+
+
+MODIS.temp.guate.test <- ee_grab(data = ee_data_collection(
+  datasetID = "MODIS/006/MOD11A1",
+  spatialReducer = "mean", # temporalReducer = "mean",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
+  resolution = NULL, bandSelection = NULL),
+  targetArea = "/Users/travismcarthur/Guate-HH-points.shp")
+
+#colnames(MODIS.temp.guate.test)[colnames(MODIS.temp.guate.test) == 
+#                                    "tmmx_s.mean_t.mean_2017.06.01_to_2017.07.01"] <- "tmmx_s.mean_t.mean_2017.06"
+
+#MODIS.temp.guate.test$tmmx_s.mean_t.mean_2017.06 <- MODIS.temp.guate.test$tmmx_s.mean_t.mean_2017.01 * 0.1
+
+MODIS.temp.guate.test$LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01 <-
+  MODIS.temp.guate.test$LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01 * 0.02 
+
+# convert from Kelvin to Celsius
+MODIS.temp.guate.test$LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01 <- 
+  MODIS.temp.guate.test$LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01 - 273.15
+
+str(MODIS.temp.guate.test)
+# QC_Day
+uniqueN(MODIS.temp.guate.test$LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01)
+# 91 unique values
+sd(MODIS.temp.guate.test$LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01)
+# [1] 1.671745
+# ?plot.sf
+plot(MODIS.temp.guate.test)
+plot(MODIS.temp.guate.test[, "LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01", drop = FALSE], axes = TRUE,
+     main = "June 2017 mean daily surface temp in Celsius (MODIS)")
+
+
+
+
+
+
+GPP.guate.test <- ee_grab(data = ee_data_collection(
+  datasetID = "MODIS/006/MOD17A2H",
+  spatialReducer = "mean", # temporalReducer = "mean",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
+  resolution = NULL, bandSelection = NULL),
+  targetArea = "/Users/travismcarthur/Guate-HH-points.shp")
+
+
+str(GPP.guate.test)
+# QC_Day
+uniqueN(GPP.guate.test$Gpp_s.mean_t.mean_2017.06.01_to_2017.07.01)
+# 170 unique values
+sd(GPP.guate.test$Gpp_s.mean_t.mean_2017.06.01_to_2017.07.01)
+# [1] 57.68621
+sd(GPP.guate.test$Gpp_s.mean_t.mean_2017.06.01_to_2017.07.01) / mean(GPP.guate.test$Gpp_s.mean_t.mean_2017.06.01_to_2017.07.01)
+# [1] 0.1747028  coefficient of variation
+# ?plot.sf
+plot(GPP.guate.test)
+plot(GPP.guate.test[, "Gpp_s.mean_t.mean_2017.06.01_to_2017.07.01", drop = FALSE], axes = TRUE,
+     main = "June 2017 mean Gross Primary Productvity (MODIS)")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
