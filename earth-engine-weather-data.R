@@ -432,19 +432,25 @@ weather.combined.dt[, windmax := as.numeric(windmax)]
 
 weather.combined.dt
 
+maxtemp.monthly.mean.dt <- weather.combined.dt[, .(tempmax = mean(tempmax)), by = .(station.name, month, year)]
+
 
 # Cannot use openxlsx::read.xlsx since xls, not xlsx
 # install.packages("readxl")
 # library(xlsx)
 
-station.coords.df <- as.data.frame(readxl::read_excel("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Mapa de Ubicación de Estaciones Climáticas/Capas/coordenadas.xls"))
+station.coords.dt <- as.data.table(readxl::read_excel("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Mapa de Ubicación de Estaciones Climáticas/Capas/coordenadas.xls"))
 
+sort(station.coords.dt$STATION)
+sort(unique(weather.combined.dt$station.name))
+station.coords.dt[STATION == "Mancomunidad", STATION := "Mancomunidad Copanchorti"] 
+station.coords.dt[STATION == "Oquen", STATION := "Lomas Oquen"] 
+stopifnot(identical(sort(station.coords.dt$STATION), sort(unique(weather.combined.dt$station.name)) ))
 
+colnames(station.coords.dt)[2:3] <- c("Longitude", "Latitude")
+coordinates(station.coords.dt) <- ~Longitude + Latitude
 
-colnames(station.coords.df)[2:3] <- c("Latitude", "Longitude")
-coordinates(station.coords.df) <- ~Longitude + Latitude
-
-writeOGR(station.coords.df, ".","Guate-station-points", "ESRI Shapefile",  overwrite_layer = TRUE)
+writeOGR(station.coords.dt, ".","Guate-station-points", "ESRI Shapefile",  overwrite_layer = TRUE)
 
 
 
@@ -454,22 +460,23 @@ MODIS.temp.guate.test.2 <- ee_grab(data = ee_data_collection(
   timeStart = "2017-06-01", timeEnd = "2017-07-01",
   resolution = NULL, bandSelection = NULL),
   targetArea = "/Users/travismcarthur/Guate-station-points.shp")
+N
+# the "N" answers the prompt: Should the file be deleted and uploaded again? [Y/N]: Y
+
+plot(MODIS.temp.guate.test.2[, "LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01", drop = FALSE], axes = TRUE)
+# weird limits ??
+
+maxtemp.monthly.mean.dt
+
+MODIS.temp.guate.test.2.subset <- as.data.table(MODIS.temp.guate.test.2[, c("STATION", "LST_Day_1km_s.mean_t.mean_2017.06.01_to_2017.07.01"), drop = FALSE])
+
+colnames(MODIS.temp.guate.test.2.subset)[1:2] <- c("station.name", "modis.surface.temp")
+
+MODIS.temp.guate.test.2.subset[, modis.surface.temp := modis.surface.temp * 0.02 - 273.15 ]
+test.3 <- merge(maxtemp.monthly.mean.dt[year == 2017 & month == 7, ], MODIS.temp.guate.test.2.subset)
+
+cor(test.3[, .(modis.surface.temp, tempmax)])
 
 
-
-
-
-
-
-
-
-
-openxlsx::read.xlsx("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Información MCC-CLIMA-PINPEP/Información Clima/Datos de Estaciones Climáticas/Datos de Estaciones Climáticas/2. Lomas Oquen/2014.xlsx", startRow = 2)
-
-sex.ratio.2015.dt <- openxlsx::read.xlsx("~/Dropbox (Personal)/PROCEDE-gender-project/Data/Population-census/2015SexRatioData.xlsx")
-
-
-
-openxlsx::read.xlsx("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Información MCC-CLIMA-PINPEP/Información Clima/Datos de Estaciones Climáticas/Datos de Estaciones Climáticas/2. Lomas Oquen/2014.xlsx", startRow = 2, sheet = "JUN")
 
 
