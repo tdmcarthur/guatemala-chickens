@@ -1,4 +1,4 @@
-
+# NOTE: Encong of this file is UTF-8
 
 
 # Rough guide to installation of dependencies for earthEngineGrabR on a Mac:
@@ -363,5 +363,113 @@ plot(CHIRPS.guate.test.2[, "precipitation_s.mean_t.mean_2013.01.01_to_2017.12.31
 
 
 
+
+
+
+
+
+weather.station.data.dir <- "/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Información MCC-CLIMA-PINPEP/Información Clima/Datos de Estaciones Climáticas/Datos de Estaciones Climáticas"
+
+weather.station.names <- list.dirs(weather.station.data.dir, full.names = FALSE)
+weather.station.names <- weather.station.names[weather.station.names != ""]
+
+
+
+meses.excel <- c("ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC")
+
+weather.combined.ls <- list()
+
+for (targ.station in weather.station.names) {
+  
+  weather.station.files <- list.files(paste0(weather.station.data.dir, "/", targ.station))
+  weather.station.files <- weather.station.files[grepl("xlsx", weather.station.files)]
+  weather.station.files <- gsub("[.]xlsx", "", weather.station.files)
+  
+  for (targ.year in weather.station.files) {
+    
+    for (targ.month in meses.excel) {
+      
+      collate.data.temp.df <- tryCatch(
+        openxlsx::read.xlsx(paste0(weather.station.data.dir, "/", targ.station, "/", targ.year, ".xlsx"),
+                            startRow = 1, sheet = targ.month), error = function(e) "threw error" )
+      
+      if (length(collate.data.temp.df) == 1) {
+        next
+      }
+      collate.data.temp.df <- collate.data.temp.df[-1, ]
+      
+      stopifnot( all(colnames(collate.data.temp.df) == c("DÍA", "TEMPERATURA", "X3",                                                          "PRECIPITACIÓN", "VELOCIDAD.DEL.VIENTO", "X6") ) )
+      
+      colnames(collate.data.temp.df) <- c("day", "tempmax", "tempmin", "precip", "windmean", "windmax")
+      
+      collate.data.temp.df$station.name <- gsub("[0-9]*[.] ", "", targ.station)
+      collate.data.temp.df$year <- as.numeric(targ.year)
+      collate.data.temp.df$month <- as.numeric(which(targ.month == meses.excel)) # Want as float, not integer
+      # Bit of a hack above
+      
+      weather.combined.ls[[length(weather.combined.ls) + 1]] <- collate.data.temp.df
+    }
+    
+  }
+   # stop()
+}
+
+# options(warn=2)
+# options(warn=0)
+
+weather.combined.dt <- rbindlist(weather.combined.ls)
+# NOTEL this is a data.table, not a data.frame
+
+weather.combined.dt <- weather.combined.dt[ day != "TEMP MAX", ]
+# Seem there were a few manual formula calculations in the spreadsheets
+
+weather.combined.dt[, day := as.numeric(day)]
+weather.combined.dt[, tempmax := as.numeric(tempmax)]
+weather.combined.dt[, tempmin := as.numeric(tempmin)]
+weather.combined.dt[, windmean := as.numeric(windmean )]
+# One observation has windmean as "1.832.9", so this "convert to N"A warning is OK
+weather.combined.dt[, windmax := as.numeric(windmax)]
+
+weather.combined.dt
+
+
+# Cannot use openxlsx::read.xlsx since xls, not xlsx
+# install.packages("readxl")
+# library(xlsx)
+
+station.coords.df <- as.data.frame(readxl::read_excel("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Mapa de Ubicación de Estaciones Climáticas/Capas/coordenadas.xls"))
+
+
+
+colnames(station.coords.df)[2:3] <- c("Latitude", "Longitude")
+coordinates(station.coords.df) <- ~Longitude + Latitude
+
+writeOGR(station.coords.df, ".","Guate-station-points", "ESRI Shapefile",  overwrite_layer = TRUE)
+
+
+
+MODIS.temp.guate.test.2 <- ee_grab(data = ee_data_collection(
+  datasetID = "MODIS/006/MOD11A1",
+  spatialReducer = "mean", # temporalReducer = "mean",
+  timeStart = "2017-06-01", timeEnd = "2017-07-01",
+  resolution = NULL, bandSelection = NULL),
+  targetArea = "/Users/travismcarthur/Guate-station-points.shp")
+
+
+
+
+
+
+
+
+
+
+openxlsx::read.xlsx("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Información MCC-CLIMA-PINPEP/Información Clima/Datos de Estaciones Climáticas/Datos de Estaciones Climáticas/2. Lomas Oquen/2014.xlsx", startRow = 2)
+
+sex.ratio.2015.dt <- openxlsx::read.xlsx("~/Dropbox (Personal)/PROCEDE-gender-project/Data/Population-census/2015SexRatioData.xlsx")
+
+
+
+openxlsx::read.xlsx("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Información MCC-CLIMA-PINPEP/Información Clima/Datos de Estaciones Climáticas/Datos de Estaciones Climáticas/2. Lomas Oquen/2014.xlsx", startRow = 2, sheet = "JUN")
 
 
