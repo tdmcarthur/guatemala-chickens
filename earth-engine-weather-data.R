@@ -59,9 +59,326 @@
 # install_github("JesJehle/earthEngineGrabR")
 
 library(earthEngineGrabR)
+library(sp)
+library(rgdal)
+library(readstata13)
+library(data.table)
+library(lfe)
 
-# Set API credentials:
+
+# Set API credentials. Just need to do this once:
 # ee_grab_install()
+
+
+
+guate.chickens.gps.df.DTA <- read.dta13("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/stata files/edited data/stata data files/hhroster.dta")
+
+guate.chickens.gps.df.DTA <- guate.chickens.gps.df.DTA[, c("sbjnum", "gpslatitude", "gpslongitude")]
+colnames(guate.chickens.gps.df.DTA)[2:3] <- c("Latitude", "Longitude")
+guate.chickens.gps.df.DTA <- guate.chickens.gps.df.DTA[complete.cases(guate.chickens.gps.df.DTA), ]
+guate.chickens.gps.df.DTA <- unique(guate.chickens.gps.df.DTA)
+
+coordinates(guate.chickens.gps.df.DTA) <- ~Longitude + Latitude
+# proj4string(guate.chickens.gps.df.DTA) = CRS("+init=epsg:4326")
+# I don't think that the projection matters for the purposes of pulling data
+# from Google Earth Engine. Actually, I think I can skip assigning
+
+writeOGR(guate.chickens.gps.df.DTA, ".","Guate-HH-points", "ESRI Shapefile",  overwrite_layer = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+weather.station.data.dir <- "/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Información MCC-CLIMA-PINPEP/Información Clima/Datos de Estaciones Climáticas/Datos de Estaciones Climáticas"
+
+weather.station.names <- list.dirs(weather.station.data.dir, full.names = FALSE)
+weather.station.names <- weather.station.names[weather.station.names != ""]
+
+
+
+meses.excel <- c("ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC")
+
+weather.combined.ls <- list()
+
+for (targ.station in weather.station.names) {
+  
+  weather.station.files <- list.files(paste0(weather.station.data.dir, "/", targ.station))
+  weather.station.files <- weather.station.files[grepl("xlsx", weather.station.files)]
+  weather.station.files <- gsub("[.]xlsx", "", weather.station.files)
+  
+  for (targ.year in weather.station.files) {
+    
+    for (targ.month in meses.excel) {
+      
+      collate.data.temp.df <- tryCatch(
+        openxlsx::read.xlsx(paste0(weather.station.data.dir, "/", targ.station, "/", targ.year, ".xlsx"),
+                            startRow = 1, sheet = targ.month), error = function(e) "threw error" )
+      
+      if (length(collate.data.temp.df) == 1) {
+        next
+      }
+      collate.data.temp.df <- collate.data.temp.df[-1, ]
+      
+      stopifnot( all(colnames(collate.data.temp.df) == c("DÍA", "TEMPERATURA", "X3",                                                          "PRECIPITACIÓN", "VELOCIDAD.DEL.VIENTO", "X6") ) )
+      
+      colnames(collate.data.temp.df) <- c("day", "tempmax", "tempmin", "precip", "windmean", "windmax")
+      
+      collate.data.temp.df$station.name <- gsub("[0-9]*[.] ", "", targ.station)
+      collate.data.temp.df$year <- as.numeric(targ.year)
+      collate.data.temp.df$month <- as.numeric(which(targ.month == meses.excel)) # Want as float, not integer
+      # Bit of a hack above
+      
+      weather.combined.ls[[length(weather.combined.ls) + 1]] <- collate.data.temp.df
+    }
+    
+  }
+   # stop()
+}
+
+# options(warn=2)
+# options(warn=0)
+
+weather.combined.dt <- rbindlist(weather.combined.ls)
+# NOTEL this is a data.table, not a data.frame
+
+weather.combined.dt <- weather.combined.dt[ day != "TEMP MAX", ]
+# Seem there were a few manual formula calculations in the spreadsheets
+
+weather.combined.dt[, day := as.numeric(day)]
+weather.combined.dt[, tempmax := as.numeric(tempmax)]
+weather.combined.dt[, tempmin := as.numeric(tempmin)]
+weather.combined.dt[, windmean := as.numeric(windmean )]
+# One observation has windmean as "1.832.9", so this "convert to N"A warning is OK
+weather.combined.dt[, windmax := as.numeric(windmax)]
+
+weather.combined.dt
+
+maxtemp.monthly.mean.dt <- weather.combined.dt[, .(tempmax = mean(tempmax)), by = .(station.name, month, year)]
+precip.monthly.mean.dt <- weather.combined.dt[, .(precip = mean(precip)), by = .(station.name, month, year)]
+
+
+# Cannot use openxlsx::read.xlsx since xls, not xlsx
+# install.packages("readxl")
+# library(xlsx)
+
+station.coords.dt <- as.data.table(readxl::read_excel("/Users/travismcarthur/Google Drive/Guatemala ronda 2 2017/Mapa de Ubicación de Estaciones Climáticas/Capas/coordenadas.xls"))
+
+sort(station.coords.dt$STATION)
+sort(unique(weather.combined.dt$station.name))
+station.coords.dt[STATION == "Mancomunidad", STATION := "Mancomunidad Copanchorti"] 
+station.coords.dt[STATION == "Oquen", STATION := "Lomas Oquen"] 
+stopifnot(identical(sort(station.coords.dt$STATION), sort(unique(weather.combined.dt$station.name)) ))
+
+colnames(station.coords.dt)[2:3] <- c("Longitude", "Latitude")
+coordinates(station.coords.dt) <- ~Longitude + Latitude
+
+writeOGR(station.coords.dt, ".","Guate-station-points", "ESRI Shapefile",  overwrite_layer = TRUE)
+
+
+
+
+
+
+
+surface.temperature.ls <- list()
+
+
+year.sequence <- seq.Date(as.Date("2017-01-01"), as.Date("2018-01-01"), by = "year")
+# 2013 to 2017
+
+for (targ.interval in seq_along(year.sequence[-1])) {
+  
+  surface.temperature.df <- 
+    ee_grab(data = construct.ee_data_collection(
+      datasetID = "MODIS/006/MOD11A1",
+     # timeStart = "2013-01-01", timeEnd = "2014-01-01",
+      timeStart = year.sequence[targ.interval], 
+      timeEnd = year.sequence[targ.interval + 1],
+      specify.frequency = TRUE, temporal.frequency = "month",
+      resolution = NULL, bandSelection = "LST_Day_1km"),
+      targetArea = "/Users/travismcarthur/Guate-station-points.shp") 
+  # If you say "Y" to re-upload the shapefile then it has crashed every time.
+  # But once you say "Y" and it crashes, you can re-run it unmodified and it works.
+  # N
+  # To answer the "interactive" prompt
+  # Ok it doesn't work with a loop
+
+  colnames(surface.temperature.df) <- gsub(".*t[.]mean_", "", colnames(surface.temperature.df))
+  colnames(surface.temperature.df) <- gsub("_to_.*$", "", colnames(surface.temperature.df))
+  surface.temperature.df <- melt(surface.temperature.df, id.vars = c("id", "STATION", "geometry"))
+  surface.temperature.df$variable <- as.Date(gsub("[.]", "-", as.character(surface.temperature.df$variable)))
+  colnames(surface.temperature.df)[colnames(surface.temperature.df) == "variable"] <- "date"
+  colnames(surface.temperature.df)[colnames(surface.temperature.df) == "value"] <- "MODIS.temperature"
+  surface.temperature.df$day <- formatC(as.numeric(data.table::mday(surface.temperature.df$date)), 
+                                        width = 2, flag = "0")
+  surface.temperature.df$month <- formatC(as.numeric(data.table::month(surface.temperature.df$date)), 
+                                          width = 2, flag = "0")
+  surface.temperature.df$year <- formatC(as.numeric(data.table::year(surface.temperature.df$date)), 
+                                         width = 2, flag = "0")
+  surface.temperature.df$STATION <- as.character(surface.temperature.df$STATION)
+  surface.temperature.df$id <- as.character(surface.temperature.df$id)
+  stop()
+  surface.temperature.ls[[length(surface.temperature.ls) + 1]] <- surface.temperature.df
+  
+}
+
+
+surface.temperature.combined.dt <- rbindlist(surface.temperature.ls)
+
+surface.temperature.combined.dt$day <- NULL
+# maxtemp.monthly.mean.dt$day <- NULL
+maxtemp.monthly.mean.dt$month <- formatC(maxtemp.monthly.mean.dt$month, 
+                                          width = 2, flag = "0")
+maxtemp.monthly.mean.dt$year <- formatC(maxtemp.monthly.mean.dt$year, 
+                                         width = 2, flag = "0")
+
+setnames(surface.temperature.combined.dt, "STATION", "station.name")
+
+surface.temperature.combined.dt[, MODIS.temperature := MODIS.temperature * 0.02 - 273.15 ]
+surface.temperature.validation.df <- merge(maxtemp.monthly.mean.dt, surface.temperature.combined.dt)
+
+# save.image("/Users/travismcarthur/Desktop/Collaborations/Mullally/guatemala-chickens/GIS/temperature-validation-temporary.Rdata")
+# load("/Users/travismcarthur/Desktop/Collaborations/Mullally/guatemala-chickens/GIS/temperature-validation-temporary.Rdata")
+
+
+
+cor(surface.temperature.validation.df[, .(MODIS.temperature, tempmax)], use = "pairwise.complete.obs")
+
+cor.test(~ MODIS.temperature + tempmax, data = surface.temperature.validation.df)
+
+
+summary(felm(tempmax ~ MODIS.temperature, data = surface.temperature.validation.df))
+
+summary(felm(tempmax ~ MODIS.temperature | month, data = surface.temperature.validation.df))
+
+summary(felm(tempmax ~ MODIS.temperature | year, data = surface.temperature.validation.df))
+
+summary(felm(tempmax ~ MODIS.temperature | I(paste(year, month)), data = surface.temperature.validation.df))
+
+
+summary(felm(tempmax ~ MODIS.temperature | month + station.name, data = surface.temperature.validation.df))
+
+
+
+
+
+
+
+
+
+#CHIRPS.guate.test <- ee_grab(data = ee_data_collection(
+#  datasetID = "UCSB-CHG/CHIRPS/DAILY",
+#  timeStart = "2017-06-01", timeEnd = "2017-07-01",
+#  resolution = NULL, bandSelection = "precipitation"),
+#  targetArea = "/Users/travismcarthur/Guate-HH-points.shp")
+
+
+
+
+CHIRPS.precip.ls <- list()
+
+precip.monthly.mean.dt <- weather.combined.dt[, .(precip = mean(precip)), by = .(station.name, month, year)]
+
+
+
+year.sequence <- seq.Date(as.Date("2016-01-01"), as.Date("2018-01-01"), by = "year")
+# 2013 to 2017
+
+for (targ.interval in seq_along(year.sequence[-1])) {
+  
+  CHIRPS.precip.df <- 
+    ee_grab(data = construct.ee_data_collection(
+      datasetID = "UCSB-CHG/CHIRPS/DAILY",
+     # timeStart = "2013-01-01", timeEnd = "2014-01-01",
+      timeStart = year.sequence[targ.interval], 
+      timeEnd = year.sequence[targ.interval + 1],
+      specify.frequency = TRUE, temporal.frequency = "month",
+      resolution = NULL, bandSelection = "precipitation"),
+      targetArea = "/Users/travismcarthur/Guate-station-points.shp") 
+  # If you say "Y" to re-upload the shapefile then it has crashed every time.
+  # But once you say "Y" and it crashes, you can re-run it unmodified and it works.
+  # N
+  # To answer the "interactive" prompt
+  # Ok it doesn't work with a loop
+
+  colnames(CHIRPS.precip.df) <- gsub(".*t[.]mean_", "", colnames(CHIRPS.precip.df))
+  colnames(CHIRPS.precip.df) <- gsub("_to_.*$", "", colnames(CHIRPS.precip.df))
+  CHIRPS.precip.df <- melt(CHIRPS.precip.df, id.vars = c("id", "STATION", "geometry"))
+  CHIRPS.precip.df$variable <- as.Date(gsub("[.]", "-", as.character(CHIRPS.precip.df$variable)))
+  colnames(CHIRPS.precip.df)[colnames(CHIRPS.precip.df) == "variable"] <- "date"
+  colnames(CHIRPS.precip.df)[colnames(CHIRPS.precip.df) == "value"] <- "CHIRPS.precip"
+  CHIRPS.precip.df$day <- formatC(as.numeric(data.table::mday(CHIRPS.precip.df$date)), 
+                                        width = 2, flag = "0")
+  CHIRPS.precip.df$month <- formatC(as.numeric(data.table::month(CHIRPS.precip.df$date)), 
+                                          width = 2, flag = "0")
+  CHIRPS.precip.df$year <- formatC(as.numeric(data.table::year(CHIRPS.precip.df$date)), 
+                                         width = 2, flag = "0")
+  CHIRPS.precip.df$STATION <- as.character(CHIRPS.precip.df$STATION)
+  CHIRPS.precip.df$id <- as.character(CHIRPS.precip.df$id)
+  stop()
+  CHIRPS.precip.ls[[length(CHIRPS.precip.ls) + 1]] <- CHIRPS.precip.df
+  
+}
+
+
+CHIRPS.precip.combined.dt <- rbindlist(CHIRPS.precip.ls)
+
+CHIRPS.precip.combined.dt$day <- NULL
+# precip.monthly.mean.dt$day <- NULL
+
+setnames(CHIRPS.precip.combined.dt, "STATION", "station.name")
+
+CHIRPS.precip.combined.dt[, CHIRPS.precip := CHIRPS.precip * 10 ] # change from mm to cm
+CHIRPS.precip.validation.df <- merge(precip.monthly.mean.dt, CHIRPS.precip.combined.dt)
+
+cor(CHIRPS.precip.validation.df[, .(CHIRPS.precip, precip)], use = "pairwise.complete.obs")
+
+cor.test(~ CHIRPS.precip + precip, data = CHIRPS.precip.validation.df)
+
+# save.image("/Users/travismcarthur/Desktop/Collaborations/Mullally/guatemala-chickens/GIS/temperature-validation-temporary.Rdata")
+# load("/Users/travismcarthur/Desktop/Collaborations/Mullally/guatemala-chickens/GIS/temperature-validation-temporary.Rdata")
+
+summary(felm(precip ~ CHIRPS.precip, data = CHIRPS.precip.validation.df))
+
+summary(felm(precip ~ CHIRPS.precip | month, data = CHIRPS.precip.validation.df))
+
+summary(felm(precip ~ CHIRPS.precip | year, data = CHIRPS.precip.validation.df))
+
+summary(felm(precip ~ CHIRPS.precip | I(paste(year, month)), data = CHIRPS.precip.validation.df))
+
+
+summary(felm(precip ~ CHIRPS.precip | month + station.name, data = CHIRPS.precip.validation.df))
+
+
+
+
+
+
+
+
+
+
+# about 2.5 minutes for each month of data
+
+
+########################################
+########################################
+### BELOW IS SCRATCH DEVELOPMENT CODE ##
+########################################
+########################################
+
+
+
+
+
+
+
 
 
 # TEST:
@@ -476,6 +793,32 @@ MODIS.temp.guate.test.2.subset[, modis.surface.temp := modis.surface.temp * 0.02
 test.3 <- merge(maxtemp.monthly.mean.dt[year == 2017 & month == 7, ], MODIS.temp.guate.test.2.subset)
 
 cor(test.3[, .(modis.surface.temp, tempmax)])
+
+
+
+
+system.time(
+test.multiple.days <- ee_grab(data = construct.ee_data_collection(
+  datasetID = "UCSB-CHG/CHIRPS/DAILY",
+  timeStart = "2017-06-01", timeEnd = "2017-06-06",
+  specify.frequency = TRUE, temporal.frequency = "day",
+  resolution = NULL, bandSelection = NULL),
+  targetArea = "/Users/travismcarthur/Guate-HH-points.shp")
+)
+
+# , targetArea =
+
+
+Reduce(function(x, y) merge(x, y, all=TRUE), list(df1, df2, df3))
+# https://stackoverflow.com/questions/14096814/merging-a-lot-of-data-frames
+
+
+
+surface.temperature.combined.df
+
+
+
+
 
 
 
