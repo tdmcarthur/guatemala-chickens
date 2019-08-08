@@ -202,7 +202,8 @@ for (targ.interval in seq_along(year.sequence[-1])) {
       timeEnd = year.sequence[targ.interval + 1],
       specify.frequency = TRUE, temporal.frequency = "month",
       resolution = NULL, bandSelection = "LST_Day_1km"),
-      targetArea = "/Users/travismcarthur/Guate-station-points.shp") 
+      targetArea = "/Users/travismcarthur/Guate-station-points.shp",
+      testCase = "N") 
   # If you say "Y" to re-upload the shapefile then it has crashed every time.
   # But once you say "Y" and it crashes, you can re-run it unmodified and it works.
   # N
@@ -220,7 +221,7 @@ for (targ.interval in seq_along(year.sequence[-1])) {
   surface.temperature.df$month <- formatC(as.numeric(data.table::month(surface.temperature.df$date)), 
                                           width = 2, flag = "0")
   surface.temperature.df$year <- formatC(as.numeric(data.table::year(surface.temperature.df$date)), 
-                                         width = 2, flag = "0")
+                                         width = 4, flag = "0")
   surface.temperature.df$STATION <- as.character(surface.temperature.df$STATION)
   surface.temperature.df$id <- as.character(surface.temperature.df$id)
   stop()
@@ -236,7 +237,7 @@ surface.temperature.combined.dt$day <- NULL
 maxtemp.monthly.mean.dt$month <- formatC(maxtemp.monthly.mean.dt$month, 
                                           width = 2, flag = "0")
 maxtemp.monthly.mean.dt$year <- formatC(maxtemp.monthly.mean.dt$year, 
-                                         width = 2, flag = "0")
+                                         width = 4, flag = "0")
 
 setnames(surface.temperature.combined.dt, "STATION", "station.name")
 
@@ -248,7 +249,7 @@ surface.temperature.validation.df <- merge(maxtemp.monthly.mean.dt, surface.temp
 
 
 
-cor(surface.temperature.validation.df[, .(MODIS.temperature, tempmax)], use = "pairwise.complete.obs")
+# cor(surface.temperature.validation.df[, .(MODIS.temperature, tempmax)], use = "pairwise.complete.obs")
 
 cor.test(~ MODIS.temperature + tempmax, data = surface.temperature.validation.df)
 
@@ -261,6 +262,8 @@ summary(felm(tempmax ~ MODIS.temperature | year, data = surface.temperature.vali
 
 summary(felm(tempmax ~ MODIS.temperature | I(paste(year, month)), data = surface.temperature.validation.df))
 
+
+summary(felm(tempmax ~ MODIS.temperature | station.name, data = surface.temperature.validation.df))
 
 summary(felm(tempmax ~ MODIS.temperature | month + station.name, data = surface.temperature.validation.df))
 
@@ -279,6 +282,11 @@ summary(felm(tempmax ~ MODIS.temperature | month + station.name, data = surface.
 #  targetArea = "/Users/travismcarthur/Guate-HH-points.shp")
 
 
+precip.monthly.mean.dt$month <- formatC(precip.monthly.mean.dt$month, 
+                                          width = 2, flag = "0")
+precip.monthly.mean.dt$year <- formatC(precip.monthly.mean.dt$year, 
+                                         width = 4, flag = "0")
+
 
 
 CHIRPS.precip.ls <- list()
@@ -287,7 +295,7 @@ precip.monthly.mean.dt <- weather.combined.dt[, .(precip = mean(precip)), by = .
 
 
 
-year.sequence <- seq.Date(as.Date("2016-01-01"), as.Date("2018-01-01"), by = "year")
+year.sequence <- seq.Date(as.Date("2014-01-01"), as.Date("2015-01-01"), by = "year")
 # 2013 to 2017
 
 for (targ.interval in seq_along(year.sequence[-1])) {
@@ -300,7 +308,8 @@ for (targ.interval in seq_along(year.sequence[-1])) {
       timeEnd = year.sequence[targ.interval + 1],
       specify.frequency = TRUE, temporal.frequency = "month",
       resolution = NULL, bandSelection = "precipitation"),
-      targetArea = "/Users/travismcarthur/Guate-station-points.shp") 
+      targetArea = "/Users/travismcarthur/Guate-station-points.shp",
+     testCase = "N") 
   # If you say "Y" to re-upload the shapefile then it has crashed every time.
   # But once you say "Y" and it crashes, you can re-run it unmodified and it works.
   # N
@@ -318,7 +327,7 @@ for (targ.interval in seq_along(year.sequence[-1])) {
   CHIRPS.precip.df$month <- formatC(as.numeric(data.table::month(CHIRPS.precip.df$date)), 
                                           width = 2, flag = "0")
   CHIRPS.precip.df$year <- formatC(as.numeric(data.table::year(CHIRPS.precip.df$date)), 
-                                         width = 2, flag = "0")
+                                         width = 4, flag = "0")
   CHIRPS.precip.df$STATION <- as.character(CHIRPS.precip.df$STATION)
   CHIRPS.precip.df$id <- as.character(CHIRPS.precip.df$id)
   stop()
@@ -334,10 +343,14 @@ CHIRPS.precip.combined.dt$day <- NULL
 
 setnames(CHIRPS.precip.combined.dt, "STATION", "station.name")
 
-CHIRPS.precip.combined.dt[, CHIRPS.precip := CHIRPS.precip * 10 ] # change from mm to cm
+CHIRPS.precip.combined.dt[, CHIRPS.precip := CHIRPS.precip * 10 / 30 ] # change from mm to cm
+# TODO: Fix the above; approximated the number of days in a month
 CHIRPS.precip.validation.df <- merge(precip.monthly.mean.dt, CHIRPS.precip.combined.dt)
 
-cor(CHIRPS.precip.validation.df[, .(CHIRPS.precip, precip)], use = "pairwise.complete.obs")
+
+
+
+# cor(CHIRPS.precip.validation.df[, .(CHIRPS.precip, precip)], use = "pairwise.complete.obs")
 
 cor.test(~ CHIRPS.precip + precip, data = CHIRPS.precip.validation.df)
 
@@ -348,9 +361,12 @@ summary(felm(precip ~ CHIRPS.precip, data = CHIRPS.precip.validation.df))
 
 summary(felm(precip ~ CHIRPS.precip | month, data = CHIRPS.precip.validation.df))
 
-summary(felm(precip ~ CHIRPS.precip | year, data = CHIRPS.precip.validation.df))
+#summary(felm(precip ~ CHIRPS.precip | year, data = CHIRPS.precip.validation.df))
 
-summary(felm(precip ~ CHIRPS.precip | I(paste(year, month)), data = CHIRPS.precip.validation.df))
+#summary(felm(precip ~ CHIRPS.precip | I(paste(year, month)), data = CHIRPS.precip.validation.df))
+
+
+summary(felm(precip ~ CHIRPS.precip | station.name, data = CHIRPS.precip.validation.df))
 
 
 summary(felm(precip ~ CHIRPS.precip | month + station.name, data = CHIRPS.precip.validation.df))
