@@ -1,5 +1,4 @@
-# NOTE: Encong of this file is UTF-8
-
+# NOTE: Encoding of this file is UTF-8
 
 # Rough guide to installation of dependencies for earthEngineGrabR on a Mac:
 # 
@@ -64,6 +63,11 @@ library(rgdal)
 library(readstata13)
 library(data.table)
 library(lfe)
+library(ggplot2)
+require(quantmod)
+require(reshape2)
+require(plyr)
+require(scales)
 
 
 # Set API credentials. Just need to do this once:
@@ -295,7 +299,7 @@ precip.monthly.mean.dt <- weather.combined.dt[, .(precip = mean(precip)), by = .
 
 
 
-year.sequence <- seq.Date(as.Date("2014-01-01"), as.Date("2015-01-01"), by = "year")
+year.sequence <- seq.Date(as.Date("2017-01-01"), as.Date("2018-01-01"), by = "year")
 # 2013 to 2017
 
 for (targ.interval in seq_along(year.sequence[-1])) {
@@ -361,9 +365,9 @@ summary(felm(precip ~ CHIRPS.precip, data = CHIRPS.precip.validation.df))
 
 summary(felm(precip ~ CHIRPS.precip | month, data = CHIRPS.precip.validation.df))
 
-#summary(felm(precip ~ CHIRPS.precip | year, data = CHIRPS.precip.validation.df))
+summary(felm(precip ~ CHIRPS.precip | year, data = CHIRPS.precip.validation.df))
 
-#summary(felm(precip ~ CHIRPS.precip | I(paste(year, month)), data = CHIRPS.precip.validation.df))
+summary(felm(precip ~ CHIRPS.precip | I(paste(year, month)), data = CHIRPS.precip.validation.df))
 
 
 summary(felm(precip ~ CHIRPS.precip | station.name, data = CHIRPS.precip.validation.df))
